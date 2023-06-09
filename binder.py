@@ -1,9 +1,9 @@
+import os
+import subprocess
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
 from tkinter import messagebox
-import PyInstaller.__main__ as pyinstaller
-
 
 class BinderFrame(tk.Frame):
     def __init__(self, root, callback):
@@ -11,9 +11,8 @@ class BinderFrame(tk.Frame):
         self.callback = callback
         self.pack_propagate(0)
         self.create_widgets()
-        self.selected_files = {}  # Dictionary to store selected files for each button
-        self.selected_icon = None  # Variable to store selected icon file path
-        self.selected_directory = None  # Variable to store selected output directory
+        self.selected_files = []  # List to store selected files
+        self.selected_output_directory = None  # Variable to store selected output directory
 
     def create_widgets(self):
         label = ttk.Label(self, text="This is the Binder Frame")
@@ -22,41 +21,12 @@ class BinderFrame(tk.Frame):
         back_button = ttk.Button(self, text="Back", command=self.back_button_click)
         back_button.pack()
 
-        join_file_button_1 = ttk.Button(self, text="Select File 1", command=lambda: self.select_file(1))
-        join_file_button_1.pack()
+        select_file_button = ttk.Button(self, text="Select File", command=self.select_file)
+        select_file_button.pack()
 
-        file_label_1 = ttk.Label(self, text="")
-        file_label_1.pack()
-        self.file_labels = [file_label_1]  # List to store file labels for each button
-
-        join_file_button_2 = ttk.Button(self, text="Select File 2", command=lambda: self.select_file(2))
-        join_file_button_2.pack()
-
-        file_label_2 = ttk.Label(self, text="")
-        file_label_2.pack()
-        self.file_labels.append(file_label_2)
-
-        icon_button = ttk.Button(self, text="Change Icon", command=self.change_icon)
-        icon_button.pack()
-
-        icon_label = ttk.Label(self, text="")
-        icon_label.pack()
-        self.icon_label = icon_label
-
-        load_order_frame = ttk.Frame(self)
-        load_order_frame.pack()
-
-        load_order_label = ttk.Label(load_order_frame, text="Load Order:")
-        load_order_label.grid(row=0, column=0, sticky=tk.W)
-
-        self.load_order_tree = ttk.Treeview(load_order_frame, selectmode="browse")
-        self.load_order_tree.grid(row=1, column=0)
-
-        up_button = ttk.Button(load_order_frame, text="Up", command=self.move_up)
-        up_button.grid(row=1, column=1, padx=5)
-
-        down_button = ttk.Button(load_order_frame, text="Down", command=self.move_down)
-        down_button.grid(row=1, column=2, padx=5)
+        file_label = ttk.Label(self, text="")
+        file_label.pack()
+        self.file_label = file_label
 
         directory_button = ttk.Button(self, text="Change Output Directory", command=self.change_directory)
         directory_button.pack()
@@ -65,98 +35,136 @@ class BinderFrame(tk.Frame):
         directory_label.pack()
         self.directory_label = directory_label
 
-        finish_button = ttk.Button(self, text="Finish Binding", command=self.finish_binding)
-        finish_button.pack()
+        # Checkbox and textbox for selecting the tool (IExpress or makeself)
+        tool_frame = ttk.Frame(self)
+        tool_frame.pack(pady=10)
+
+        tool_label = ttk.Label(tool_frame, text="Select Tool:")
+        tool_label.grid(row=0, column=0, sticky="w")
+
+        self.selected_tool = tk.StringVar()
+        self.selected_tool.set("IExpress")  # Default selection
+
+        tool_radiobutton_iexpress = ttk.Radiobutton(tool_frame, text="IExpress", variable=self.selected_tool, value="IExpress")
+        tool_radiobutton_iexpress.grid(row=0, column=1, sticky="w")
+
+        tool_radiobutton_makeself = ttk.Radiobutton(tool_frame, text="makeself", variable=self.selected_tool, value="makeself")
+        tool_radiobutton_makeself.grid(row=0, column=2, sticky="w")
+
+        # Checkbox for compression option
+        self.compress_var = tk.BooleanVar()
+        self.compress_var.set(True)  # Default selection
+
+        compress_checkbox = ttk.Checkbutton(self, text="Compress Files", variable=self.compress_var)
+        compress_checkbox.pack()
+
+        # Textbox for post-extraction command
+        post_command_label = ttk.Label(self, text="Post-Extraction Command:")
+        post_command_label.pack()
+
+        self.post_command_entry = ttk.Entry(self, width=50)
+        self.post_command_entry.pack()
+
+        join_button = ttk.Button(self, text="Join Files", command=self.join_files)
+        join_button.pack()
 
     def back_button_click(self):
         self.callback()
 
-    def select_file(self, button_index):
-        file_path = filedialog.askopenfilename(title=f"Select File {button_index}", filetypes=(("Executable Files", "*.exe"), ("All Files", "*.*")))
+    def select_file(self):
+        file_path = filedialog.askopenfilename(title="Select File", filetypes=(("Executable Files", "*.exe"), ("All Files", "*.*")))
         if file_path:
-            self.selected_files[button_index] = file_path
-            self.file_labels[button_index - 1]["text"] = file_path
-
-            # Update load order tree with selected files
-            self.update_load_order_tree()
-
-    def update_load_order_tree(self):
-        self.load_order_tree.delete(*self.load_order_tree.get_children())
-
-        for button_index, file_path in self.selected_files.items():
-            self.load_order_tree.insert("", "end", text=f"File {button_index}", values=(file_path,))
-
-    def change_icon(self):
-        icon_path = filedialog.askopenfilename(title="Select Icon", filetypes=(("Icon Files", "*.ico"), ("All Files", "*.*")))
-        if icon_path:
-            self.selected_icon = icon_path
-            self.icon_label["text"] = icon_path
-
-    def move_up(self):
-        selected_item = self.load_order_tree.selection()
-        if selected_item:
-            self.load_order_tree.move(selected_item, self.load_order_tree.parent(selected_item), self.load_order_tree.index(selected_item) - 1)
-
-    def move_down(self):
-        selected_item = self.load_order_tree.selection()
-        if selected_item:
-            self.load_order_tree.move(selected_item, self.load_order_tree.parent(selected_item), self.load_order_tree.index(selected_item) + 1)
+            self.selected_files.append(file_path)
+            self.file_label["text"] = file_path
 
     def change_directory(self):
         directory = filedialog.askdirectory(title="Select Output Directory")
         if directory:
-            self.selected_directory = directory
+            self.selected_output_directory = directory
             self.directory_label["text"] = directory
 
-    def finish_binding(self):
+    def join_files(self):
         if not self.selected_files:
             messagebox.showerror("Error", "No files selected.")
             return
 
-        if not self.selected_icon:
-            messagebox.showerror("Error", "No icon selected.")
-            return
-
-        if not self.selected_directory:
+        if not self.selected_output_directory:
             messagebox.showerror("Error", "No output directory selected.")
             return
 
-        save_path = filedialog.asksaveasfilename(
-            title="Save As", defaultextension=".exe",
-            filetypes=(("Executable Files", "*.exe"), ("All Files", "*.*")))
-        if not save_path:
+        output_file = filedialog.asksaveasfilename(title="Save Joined File", filetypes=(("Executable Files", "*.exe"), ("All Files", "*.*")))
+        if not output_file:
             return
 
-    # Join files into a single executable using the selected icon and load order
-        output_file = os.path.join(self.selected_directory, os.path.basename(save_path))
-        command = [
-            "pyinstaller",
-            "--onefile",
-            "--add-data", f"{self.selected_icon};.",
-            "--icon", os.path.basename(self.selected_icon),
-            "--distpath", self.selected_directory,
-            "--specpath", self.selected_directory
-        ]
+        if self.selected_tool.get() == "IExpress":
+            self.join_files_with_iexpress(output_file)
+        elif self.selected_tool.get() == "makeself":
+            self.join_files_with_makeself(output_file)
 
-        for _, file_path in sorted(self.selected_files.items()):
-            command.extend(["--add-data", f"{file_path};."])
+    def join_files_with_iexpress(self, output_file):
+        # Create the temporary batch file to run the joined files
+        temp_batch_file = os.path.join(self.selected_output_directory, "temp_batch.bat")
+        with open(temp_batch_file, "w") as file:
+            file.write("@echo off\n")
+            for file_path in self.selected_files:
+                file.write(f'call "{file_path}"\n')
+            post_command = self.post_command_entry.get()
+            if post_command:
+                file.write(f'{post_command}\n')
 
-        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        # Create the configuration file for IExpress
+        config_file = os.path.join(self.selected_output_directory, "config.txt")
+        with open(config_file, "w") as file:
+            file.write("[Version]\n")
+            file.write("Class=IEXPRESS\n")
+            file.write("SEDVersion=3\n")
+            file.write("[Options]\n")
+            file.write("PackagePurpose=InstallApp\n")
+            file.write("ShowInstallProgramWindow=0\n")
+            if self.compress_var.get():
+                file.write("HideExtractAnimation=1\n")
+            else:
+                file.write("HideExtractAnimation=0\n")
+            file.write("UseLongFileName=1\n")
+            file.write("InsideCompressed=0\n")
+            file.write("[Strings]\n")
+            file.write("InstallPrompt=\n")
+            file.write("DisplayLicense=\n")
+            file.write("FinishMessage=\n")
+            file.write("TargetName=temp.exe\n")
+            file.write("FriendlyName=Joined Files\n")
+            file.write(f"AppLaunched=cmd /c \"{temp_batch_file}\"\n")
+            file.write("PostInstallCmd=<None>\n")
+            file.write("AdminQuietInstCmd=\n")
+            file.write("UserQuietInstCmd=\n")
+
+        # Execute IExpress to create the self-extracting executable
+        iexpress_command = ["iexpress", "/n", "/q", "/m", config_file]
+        subprocess.run(iexpress_command, cwd=self.selected_output_directory, shell=True)
+
+        # Remove the temporary batch file and the configuration file
+        os.remove(temp_batch_file)
+        os.remove(config_file)
+
+        messagebox.showinfo("Success", f"Joining process completed.\nOutput file: {output_file}")
+
+    def join_files_with_makeself(self, output_file):
+        # Create the command to join the files using makeself
+        makeself_command = ["makeself.sh", "--tar-quiet", "--nocomp", "--notemp", "--nox11", "--nomd5"]
+        makeself_command.extend(self.selected_files)
+        makeself_command.append(output_file)
+
+        # Execute makeself to create the self-extracting executable
+        process = subprocess.Popen(makeself_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout, stderr = process.communicate()
 
         if process.returncode != 0:
-            messagebox.showerror("Error", f"Binding process failed:\n{stderr.decode('utf-8')}")
+            messagebox.showerror("Error", f"Joining process failed:\n{stderr.decode('utf-8')}")
         else:
-            messagebox.showinfo("Success", f"Binding process completed.\nOutput file: {output_file}")
+            messagebox.showinfo("Success", f"Joining process completed.\nOutput file: {output_file}")
 
-    # Clear the selections and reset the labels
-        self.selected_files = {}
-        self.selected_icon = None
-        self.selected_directory = None
-
-        for label in self.file_labels:
-            label["text"] = ""
-
-        self.icon_label["text"] = ""
-        self.load_order_tree.delete(*self.load_order_tree.get_children())
+        # Clear the selections and reset the labels
+        self.selected_files = []
+        self.selected_output_directory = None
+        self.file_label["text"] = ""
         self.directory_label["text"] = ""
