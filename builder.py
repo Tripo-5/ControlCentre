@@ -1,6 +1,9 @@
 import tkinter as tk
-from tkinter import ttk
 import PyInstaller.__main__ as pyinstaller
+import random
+import base64
+import tkinter as tk
+from tkinter import ttk, filedialog, messagebox
 
 
 class BuilderFrame(tk.Frame):
