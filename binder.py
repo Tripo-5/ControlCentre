@@ -1,53 +1,45 @@
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
-import subprocess
-import os
-
 
 class BinderFrame(ttk.Frame):
-    def __init__(self, parent):
+    def __init__(self, parent, back_button_click):
         super().__init__(parent)
         self.parent = parent
-        self.selected_files = []
-        self.load_order = []
-        self.selected_directory = ""
+        self.back_button_click = back_button_click
 
-        # Create UI elements
+        self.selected_files = []
+        self.selected_directory = ""
+        self.load_order = []
+
         self.create_file_selection()
         self.create_load_order()
-        self.create_output_directory()
-
-        # Create Join button
-        self.join_button = ttk.Button(
-            self, text="Join Files", command=self.join_files
-        )
-        self.join_button.pack(side=tk.BOTTOM, pady=10)
+        self.create_directory_selection()
+        self.create_binder_selection()
+        self.create_post_install_script()
+        self.create_additional_options()
+        self.create_join_button()
 
     def create_file_selection(self):
         file_selection_frame = ttk.Frame(self)
         file_selection_frame.pack(side=tk.LEFT, padx=10)
 
-        # Create Select File 1 button and display box
-        self.file1_path = tk.StringVar()
-        select_file1_button = ttk.Button(
-            file_selection_frame, text="Select File 1", command=self.select_file1
-        )
+        # Create Select File 1 button
+        select_file1_button = ttk.Button(file_selection_frame, text="Select File 1", command=self.select_file1)
         select_file1_button.pack(side=tk.TOP, pady=5)
-        file1_display = ttk.Entry(
-            file_selection_frame, textvariable=self.file1_path, width=50, state="readonly"
-        )
-        file1_display.pack(side=tk.TOP, pady=5)
 
-        # Create Select File 2 button and display box
-        self.file2_path = tk.StringVar()
-        select_file2_button = ttk.Button(
-            file_selection_frame, text="Select File 2", command=self.select_file2
-        )
+        # Create File 1 display box
+        self.file1_path = tk.StringVar()
+        file1_display_box = ttk.Entry(file_selection_frame, textvariable=self.file1_path, state="readonly")
+        file1_display_box.pack(side=tk.TOP, pady=5)
+
+        # Create Select File 2 button
+        select_file2_button = ttk.Button(file_selection_frame, text="Select File 2", command=self.select_file2)
         select_file2_button.pack(side=tk.TOP, pady=5)
-        file2_display = ttk.Entry(
-            file_selection_frame, textvariable=self.file2_path, width=50, state="readonly"
-        )
-        file2_display.pack(side=tk.TOP, pady=5)
+
+        # Create File 2 display box
+        self.file2_path = tk.StringVar()
+        file2_display_box = ttk.Entry(file_selection_frame, textvariable=self.file2_path, state="readonly")
+        file2_display_box.pack(side=tk.TOP, pady=5)
 
     def create_load_order(self):
         load_order_frame = ttk.Frame(self)
@@ -57,104 +49,185 @@ class BinderFrame(ttk.Frame):
         load_order_label = ttk.Label(load_order_frame, text="Load Order")
         load_order_label.pack(side=tk.TOP)
 
-        # Create Load Order listbox
-        self.load_order_listbox = tk.Listbox(load_order_frame, selectmode=tk.SINGLE, width=50)
+        # Create Load Order Listbox
+        self.load_order_listbox = tk.Listbox(load_order_frame, height=5, selectmode=tk.SINGLE)
         self.load_order_listbox.pack(side=tk.TOP, pady=5)
 
-        # Create Up and Down buttons for load order
-        up_button = ttk.Button(load_order_frame, text="Up", command=self.move_up)
-        up_button.pack(side=tk.TOP)
-        down_button = ttk.Button(load_order_frame, text="Down", command=self.move_down)
-        down_button.pack(side=tk.TOP)
+        # Create Move Up button
+        move_up_button = ttk.Button(load_order_frame, text="Move Up", command=self.move_up)
+        move_up_button.pack(side=tk.TOP)
 
-    def create_output_directory(self):
-        output_directory_frame = ttk.Frame(self)
-        output_directory_frame.pack(side=tk.LEFT, padx=10)
+        # Create Move Down button
+        move_down_button = ttk.Button(load_order_frame, text="Move Down", command=self.move_down)
+        move_down_button.pack(side=tk.TOP)
 
-        # Create Select Output Directory button and display box
-        self.directory_path = tk.StringVar()
-        select_directory_button = ttk.Button(
-            output_directory_frame, text="Select Output Directory", command=self.select_directory
-        )
+    def create_directory_selection(self):
+        directory_selection_frame = ttk.Frame(self)
+        directory_selection_frame.pack(side=tk.LEFT, padx=10)
+
+        # Create Select Directory button
+        select_directory_button = ttk.Button(directory_selection_frame, text="Select Directory", command=self.select_directory)
         select_directory_button.pack(side=tk.TOP, pady=5)
-        directory_display = ttk.Entry(
-            output_directory_frame, textvariable=self.directory_path, width=50, state="readonly"
-        )
-        directory_display.pack(side=tk.TOP, pady=5)
+
+        # Create Directory display box
+        self.directory_path = tk.StringVar()
+        directory_display_box = ttk.Entry(directory_selection_frame, textvariable=self.directory_path, state="readonly")
+        directory_display_box.pack(side=tk.TOP, pady=5)
+
+    def create_binder_selection(self):
+        binder_selection_frame = ttk.Frame(self)
+        binder_selection_frame.pack(side=tk.LEFT, padx=10)
+
+        # Create Binder Selection label
+        binder_selection_label = ttk.Label(binder_selection_frame, text="Binder Selection")
+        binder_selection_label.pack(side=tk.TOP)
+
+        # Create Binder Selection buttons
+        binders = ["IExpress", "Makeself"]
+        self.binder_var = tk.StringVar()
+        for binder in binders:
+            btn = ttk.Radiobutton(binder_selection_frame, text=binder, variable=self.binder_var, value=binder)
+            btn.pack(side=tk.TOP, pady=5)
+
+    def create_post_install_script(self):
+        post_install_script_frame = ttk.Frame(self)
+        post_install_script_frame.pack(side=tk.LEFT, padx=10)
+
+        # Create Post-Install Script label
+        post_install_script_label = ttk.Label(post_install_script_frame, text="Post-Install Script")
+        post_install_script_label.pack(side=tk.TOP)
+
+        # Create Post-Install Script text box
+        self.post_install_script_text = tk.Text(post_install_script_frame, height=5, width=30)
+        self.post_install_script_text.pack(side=tk.TOP, pady=5)
+
+    def create_additional_options(self):
+        additional_options_frame = ttk.Frame(self)
+        additional_options_frame.pack(side=tk.LEFT, padx=10)
+
+        # Create Additional Options label
+        additional_options_label = ttk.Label(additional_options_frame, text="Additional Options")
+        additional_options_label.pack(side=tk.TOP)
+
+        # TODO: Add code to create checkboxes or other input fields for additional options
+
+    def create_join_button(self):
+        join_button = ttk.Button(self, text="Join Files", command=self.join_files)
+        join_button.pack(side=tk.BOTTOM, pady=10)
 
     def select_file1(self):
-        file_path = filedialog.askopenfilename(title="Select File 1")
-        if file_path:
-            self.file1_path.set(file_path)
+        file_path = filedialog.askopenfilename()
+        self.file1_path.set(file_path)
 
     def select_file2(self):
-        file_path = filedialog.askopenfilename(title="Select File 2")
-        if file_path:
-            self.file2_path.set(file_path)
+        file_path = filedialog.askopenfilename()
+        self.file2_path.set(file_path)
 
     def move_up(self):
         selected_index = self.load_order_listbox.curselection()
         if selected_index:
-            index = selected_index[0]
-            if index > 0:
-                self.load_order_listbox.delete(index)
-                self.load_order_listbox.insert(index - 1, self.load_order[index])
-                self.load_order[index], self.load_order[index - 1] = (
-                    self.load_order[index - 1],
-                    self.load_order[index],
-                )
-                self.load_order_listbox.selection_set(index - 1)
+            selected_index = selected_index[0]
+            if selected_index > 0:
+                self.load_order_listbox.delete(selected_index)
+                self.load_order_listbox.insert(selected_index - 1, self.load_order[selected_index])
+                self.load_order.pop(selected_index)
+                self.load_order.insert(selected_index - 1, self.selected_files[selected_index])
+                self.load_order_listbox.selection_clear(0, tk.END)
+                self.load_order_listbox.selection_set(selected_index - 1)
 
     def move_down(self):
         selected_index = self.load_order_listbox.curselection()
         if selected_index:
-            index = selected_index[0]
-            if index < len(self.load_order) - 1:
-                self.load_order_listbox.delete(index)
-                self.load_order_listbox.insert(index + 1, self.load_order[index])
-                self.load_order[index], self.load_order[index + 1] = (
-                    self.load_order[index + 1],
-                    self.load_order[index],
-                )
-                self.load_order_listbox.selection_set(index + 1)
+            selected_index = selected_index[0]
+            if selected_index < len(self.load_order) - 1:
+                self.load_order_listbox.delete(selected_index)
+                self.load_order_listbox.insert(selected_index + 1, self.load_order[selected_index])
+                self.load_order.pop(selected_index)
+                self.load_order.insert(selected_index + 1, self.selected_files[selected_index])
+                self.load_order_listbox.selection_clear(0, tk.END)
+                self.load_order_listbox.selection_set(selected_index + 1)
 
     def select_directory(self):
-        directory = filedialog.askdirectory(title="Select Output Directory")
-        if directory:
-            self.directory_path.set(directory)
-            self.selected_directory = directory
+        directory_path = filedialog.askdirectory()
+        self.directory_path.set(directory_path)
 
     def join_files(self):
-        # Check if output directory is selected
-        if not self.selected_directory:
-            messagebox.showerror("Error", "Please select an output directory.")
+        # Check if the directory is selected
+        if not self.directory_path.get():
+            messagebox.showerror("Error", "Please select the output directory.")
             return
 
-        # Check if both files are selected
-        if not self.file1_path.get() or not self.file2_path.get():
-            messagebox.showerror("Error", "Please select both File 1 and File 2.")
+        # Check if at least two files are selected
+        if len(self.selected_files) < 2:
+            messagebox.showerror("Error", "Please select at least two files.")
             return
 
-        # Add selected files to load order
-        self.load_order = [self.file1_path.get(), self.file2_path.get()]
+        # Check if binder is selected
+        self.selected_binder = self.binder_var.get()
+        if not self.selected_binder:
+            messagebox.showerror("Error", "Please select a binder.")
+            return
 
-        # Perform the binding using makeself command
-        command = self.create_makeself_command()
-        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stdout, stderr = process.communicate()
-        if process.returncode == 0:
-            messagebox.showinfo("Success", "Files joined successfully.")
-        else:
-            messagebox.showerror("Error", f"Error joining files:\n{stderr.decode()}")
+        # Get the post-install script content
+        post_install_script = self.post_install_script_text.get("1.0", tk.END).strip()
 
-    def create_makeself_command(self):
-        output_file = os.path.join(self.selected_directory, "joined_files.run")
+        # Get the additional options
+        # TODO: Retrieve values from checkboxes or input fields for additional options
 
-        # Generate the makeself command
-        command = [
-            "makeself.sh", "--gzip", "--nocomp", "--notemp", "--nocrc",
-            self.selected_directory, output_file, "Join Files", *self.load_order
+        # Print the selected files, output directory, binder, post-install script, and additional options
+        print("Selected Files:")
+        for file in self.selected_files:
+            print(file)
+        print("Output Directory:", self.directory_path.get())
+        print("Binder:", self.selected_binder)
+        print("Post-Install Script:")
+        print(post_install_script)
+        print("Additional Options:")
+        # TODO: Print the values of additional options
+
+    def back_button_click(self):
+        self.destroy()
+        self.parent.show_main_frame()
+
+class MainFrame(ttk.Frame):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.parent = parent
+
+        self.create_title()
+        self.create_buttons()
+
+    def create_title(self):
+        title_label = ttk.Label(self, text="Binder Application", font=("Helvetica", 24))
+        title_label.pack(side=tk.TOP, pady=20)
+
+    def create_buttons(self):
+        button_options = [
+            ("Select Files", self.select_files_click),
+            ("Binder Options", self.binder_options_click),
+            ("Join Files", self.join_files_click),
+            ("Exit", self.exit_click)
         ]
 
-        return command
+        for option in button_options:
+            btn = ttk.Button(self, text=option[0], command=option[1])
+            btn.pack(side=tk.TOP, pady=10)
 
+    def select_files_click(self):
+        self.hide_main_frame()
+        binder_frame = BinderFrame(self, self.show_main_frame)
+
+    def binder_options_click(self):
+        messagebox.showinfo("Binder Options", "Not implemented yet!")
+
+    def join_files_click(self):
+        messagebox.showinfo("Join Files", "Not implemented yet!")
+
+    def exit_click(self):
+        self.parent.destroy()
+
+    def show_main_frame(self):
+        self.pack()
+
+    def hide_main_frame(self):
+        self.pack_forget()
