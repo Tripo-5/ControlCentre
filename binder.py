@@ -137,14 +137,22 @@ class BinderFrame(ttk.Frame):
         join_button.pack(side=tk.TOP, pady=20)
 
     def select_file1(self):
-        file_path = filedialog.askopenfilename()
-        if file_path:
-            self.file1_path.set(file_path)
+      file_path = filedialog.askopenfilename(title="Select File 1", filetypes=(("Executable Files", "*.exe"), ("All Files", "*.*")))
+      if file_path:
+          self.selected_files[1] = file_path
+          self.file_labels[0]["text"] = file_path
+
+          # Update load order tree with selected files
+           self.update_load_order_tree()
 
     def select_file2(self):
-        file_path = filedialog.askopenfilename()
+        file_path = filedialog.askopenfilename(title="Select File 2", filetypes=(("Executable Files", "*.exe"), ("All Files", "*.*")))
         if file_path:
-            self.file2_path.set(file_path)
+            self.selected_files[2] = file_path
+           self.file_labels[1]["text"] = file_path
+
+           # Update load order tree with selected files
+          self.update_load_order_tree()
 
     def select_output_directory(self):
         directory = filedialog.askdirectory()
