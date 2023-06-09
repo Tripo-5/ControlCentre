@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
+from tkinter import messagebox
 
 
 class BinderFrame(tk.Frame):
@@ -75,6 +76,15 @@ class BinderFrame(tk.Frame):
             self.selected_files[button_index] = file_path
             self.file_labels[button_index - 1]["text"] = file_path
 
+            # Update load order tree with selected files
+            self.update_load_order_tree()
+
+    def update_load_order_tree(self):
+        self.load_order_tree.delete(*self.load_order_tree.get_children())
+
+        for button_index, file_path in self.selected_files.items():
+            self.load_order_tree.insert("", "end", text=f"File {button_index}", values=(file_path,))
+
     def change_icon(self):
         icon_path = filedialog.askopenfilename(title="Select Icon", filetypes=(("Icon Files", "*.ico"), ("All Files", "*.*")))
         if icon_path:
@@ -98,5 +108,35 @@ class BinderFrame(tk.Frame):
             self.directory_label["text"] = directory
 
     def finish_binding(self):
-        # TODO: Implement the logic to finalize the binding process
-        pass
+        if not self.selected_files:
+            messagebox.showerror("Error", "No files selected.")
+            return
+
+        if not self.selected_icon:
+            messagebox.showerror("Error", "No icon selected.")
+            return
+
+        if not self.selected_directory:
+            messagebox.showerror("Error", "No output directory selected.")
+            return
+
+        save_path = filedialog.asksaveasfilename(title="Save As", defaultextension=".exe", filetypes=(("Executable Files", "*.exe"), ("All Files", "*.*")))
+        if not save_path:
+            return
+
+        # TODO: Implement the logic to finalize the binding process using the selected files, icon, load order, and output directory
+        # You can use the values stored in self.selected_files, self.selected_icon, self.load_order_tree, and self.selected_directory
+
+        messagebox.showinfo("Success", "Binding process completed.")
+
+        # Clear the selections and reset the labels
+        self.selected_files = {}
+        self.selected_icon = None
+        self.selected_directory = None
+
+        for label in self.file_labels:
+            label["text"] = ""
+
+        self.icon_label["text"] = ""
+        self.load_order_tree.delete(*self.load_order_tree.get_children())
+        self.directory_label["text"] = ""
