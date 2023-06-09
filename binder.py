@@ -172,3 +172,45 @@ class BinderFrame(ttk.Frame):
     def back_button_click(self):
         self.destroy()
         self.back_button_click()
+
+class MainWindow(ttk.Frame):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.parent = parent
+        self.binder_frame = None
+
+        self.create_title()
+        self.create_menu()
+        self.create_binder_button()
+
+    def create_title(self):
+        title_label = ttk.Label(self, text="Control Command Center", font=("Helvetica", 24))
+        title_label.pack(side=tk.TOP, pady=20)
+
+    def create_menu(self):
+        menu_bar = tk.Menu(self.parent)
+        self.parent.config(menu=menu_bar)
+
+        file_menu = tk.Menu(menu_bar, tearoff=0)
+        file_menu.add_command(label="Exit", command=self.parent.quit)
+        menu_bar.add_cascade(label="File", menu=file_menu)
+
+    def create_binder_button(self):
+        binder_button = ttk.Button(self, text="Binder", command=self.show_binder_frame)
+        binder_button.pack(side=tk.TOP, pady=20)
+
+    def show_binder_frame(self):
+        if self.binder_frame:
+            self.binder_frame.destroy()
+        self.binder_frame = BinderFrame(self.parent, self.back_button_click)
+        self.binder_frame.pack(side=tk.TOP, pady=20)
+
+    def back_button_click(self):
+        self.show_binder_frame()
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    root.title("Control Command Center")
+    window = MainWindow(root)
+    window.pack(side=tk.TOP, padx=20, pady=20)
+    root.mainloop()
