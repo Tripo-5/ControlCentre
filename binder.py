@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
 from tkinter import messagebox
+import PyInstaller.__main__ as pyinstaller
 
 
 class BinderFrame(tk.Frame):
