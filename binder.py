@@ -120,16 +120,35 @@ class BinderFrame(tk.Frame):
             messagebox.showerror("Error", "No output directory selected.")
             return
 
-        save_path = filedialog.asksaveasfilename(title="Save As", defaultextension=".exe", filetypes=(("Executable Files", "*.exe"), ("All Files", "*.*")))
+        save_path = filedialog.asksaveasfilename(
+            title="Save As", defaultextension=".exe",
+            filetypes=(("Executable Files", "*.exe"), ("All Files", "*.*")))
         if not save_path:
             return
 
-        # TODO: Implement the logic to finalize the binding process using the selected files, icon, load order, and output directory
-        # You can use the values stored in self.selected_files, self.selected_icon, self.load_order_tree, and self.selected_directory
+    # Join files into a single executable using the selected icon and load order
+        output_file = os.path.join(self.selected_directory, os.path.basename(save_path))
+        command = [
+            "pyinstaller",
+            "--onefile",
+            "--add-data", f"{self.selected_icon};.",
+            "--icon", os.path.basename(self.selected_icon),
+            "--distpath", self.selected_directory,
+            "--specpath", self.selected_directory
+        ]
 
-        messagebox.showinfo("Success", "Binding process completed.")
+        for _, file_path in sorted(self.selected_files.items()):
+            command.extend(["--add-data", f"{file_path};."])
 
-        # Clear the selections and reset the labels
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr = process.communicate()
+
+        if process.returncode != 0:
+            messagebox.showerror("Error", f"Binding process failed:\n{stderr.decode('utf-8')}")
+        else:
+            messagebox.showinfo("Success", f"Binding process completed.\nOutput file: {output_file}")
+
+    # Clear the selections and reset the labels
         self.selected_files = {}
         self.selected_icon = None
         self.selected_directory = None
