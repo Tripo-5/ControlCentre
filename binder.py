@@ -1,187 +1,160 @@
-import os
 import tkinter as tk
-from tkinter import ttk
-from tkinter import filedialog
-from tkinter import messagebox
+from tkinter import ttk, filedialog, messagebox
 import subprocess
+import os
 
-class BinderFrame(tk.Frame):
-    def __init__(self, root):
-        super().__init__(root, width=600, height=400)
-        self.pack_propagate(0)
-        self.create_widgets()
-        self.selected_files = {}  # Dictionary to store selected files for each button
-        self.load_order = []  # List to store the load order of the selected files
-        self.selected_directory = None  # Variable to store selected output directory
 
-    def create_widgets(self):
-        label = ttk.Label(self, text="This is the Binder Frame")
-        label.pack()
+class BinderFrame(ttk.Frame):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.parent = parent
+        self.selected_files = []
+        self.load_order = []
+        self.selected_directory = ""
 
-        select_file_button_1 = ttk.Button(self, text="Select File 1", command=lambda: self.select_file(1))
-        select_file_button_1.pack()
+        # Create UI elements
+        self.create_file_selection()
+        self.create_load_order()
+        self.create_output_directory()
 
-        file_label_1 = ttk.Label(self, text="")
-        file_label_1.pack()
-        self.file_labels = [file_label_1]  # List to store file labels for each button
+        # Create Join button
+        self.join_button = ttk.Button(
+            self, text="Join Files", command=self.join_files
+        )
+        self.join_button.pack(side=tk.BOTTOM, pady=10)
 
-        select_file_button_2 = ttk.Button(self, text="Select File 2", command=lambda: self.select_file(2))
-        select_file_button_2.pack()
+    def create_file_selection(self):
+        file_selection_frame = ttk.Frame(self)
+        file_selection_frame.pack(side=tk.LEFT, padx=10)
 
-        file_label_2 = ttk.Label(self, text="")
-        file_label_2.pack()
-        self.file_labels.append(file_label_2)
+        # Create Select File 1 button and display box
+        self.file1_path = tk.StringVar()
+        select_file1_button = ttk.Button(
+            file_selection_frame, text="Select File 1", command=self.select_file1
+        )
+        select_file1_button.pack(side=tk.TOP, pady=5)
+        file1_display = ttk.Entry(
+            file_selection_frame, textvariable=self.file1_path, width=50, state="readonly"
+        )
+        file1_display.pack(side=tk.TOP, pady=5)
 
+        # Create Select File 2 button and display box
+        self.file2_path = tk.StringVar()
+        select_file2_button = ttk.Button(
+            file_selection_frame, text="Select File 2", command=self.select_file2
+        )
+        select_file2_button.pack(side=tk.TOP, pady=5)
+        file2_display = ttk.Entry(
+            file_selection_frame, textvariable=self.file2_path, width=50, state="readonly"
+        )
+        file2_display.pack(side=tk.TOP, pady=5)
+
+    def create_load_order(self):
         load_order_frame = ttk.Frame(self)
-        load_order_frame.pack()
+        load_order_frame.pack(side=tk.LEFT, padx=10)
 
-        load_order_label = ttk.Label(load_order_frame, text="Load Order:")
-        load_order_label.grid(row=0, column=0, sticky=tk.W)
+        # Create Load Order label
+        load_order_label = ttk.Label(load_order_frame, text="Load Order")
+        load_order_label.pack(side=tk.TOP)
 
-        self.load_order_tree = ttk.Treeview(load_order_frame, selectmode="browse")
-        self.load_order_tree.grid(row=1, column=0)
+        # Create Load Order listbox
+        self.load_order_listbox = tk.Listbox(load_order_frame, selectmode=tk.SINGLE, width=50)
+        self.load_order_listbox.pack(side=tk.TOP, pady=5)
 
+        # Create Up and Down buttons for load order
         up_button = ttk.Button(load_order_frame, text="Up", command=self.move_up)
-        up_button.grid(row=1, column=1, padx=5)
-
+        up_button.pack(side=tk.TOP)
         down_button = ttk.Button(load_order_frame, text="Down", command=self.move_down)
-        down_button.grid(row=1, column=2, padx=5)
+        down_button.pack(side=tk.TOP)
 
-        directory_button = ttk.Button(self, text="Select Output Directory", command=self.select_directory)
-        directory_button.pack()
+    def create_output_directory(self):
+        output_directory_frame = ttk.Frame(self)
+        output_directory_frame.pack(side=tk.LEFT, padx=10)
 
-        directory_label = ttk.Label(self, text="")
-        directory_label.pack()
-        self.directory_label = directory_label
+        # Create Select Output Directory button and display box
+        self.directory_path = tk.StringVar()
+        select_directory_button = ttk.Button(
+            output_directory_frame, text="Select Output Directory", command=self.select_directory
+        )
+        select_directory_button.pack(side=tk.TOP, pady=5)
+        directory_display = ttk.Entry(
+            output_directory_frame, textvariable=self.directory_path, width=50, state="readonly"
+        )
+        directory_display.pack(side=tk.TOP, pady=5)
 
-        join_button = ttk.Button(self, text="Join Files", command=self.join_files)
-        join_button.pack()
-
-    def select_file(self, button_index):
-        file_path = filedialog.askopenfilename(title=f"Select File {button_index}", filetypes=(("Executable Files", "*.exe"), ("All Files", "*.*")))
+    def select_file1(self):
+        file_path = filedialog.askopenfilename(title="Select File 1")
         if file_path:
-            self.selected_files[button_index] = file_path
-            self.file_labels[button_index - 1]["text"] = file_path
+            self.file1_path.set(file_path)
 
-            # Update load order tree with selected files
-            self.update_load_order_tree()
-
-    def update_load_order_tree(self):
-        self.load_order_tree.delete(*self.load_order_tree.get_children())
-
-        for index, file_path in enumerate(self.load_order, start=1):
-            self.load_order_tree.insert("", "end", text=f"File {index}", values=(file_path,))
+    def select_file2(self):
+        file_path = filedialog.askopenfilename(title="Select File 2")
+        if file_path:
+            self.file2_path.set(file_path)
 
     def move_up(self):
-        selected_item = self.load_order_tree.selection()
-        if selected_item:
-            index = self.load_order.index(selected_item[0])
+        selected_index = self.load_order_listbox.curselection()
+        if selected_index:
+            index = selected_index[0]
             if index > 0:
-                self.load_order.remove(selected_item[0])
-                self.load_order.insert(index - 1, selected_item[0])
-                self.update_load_order_tree()
+                self.load_order_listbox.delete(index)
+                self.load_order_listbox.insert(index - 1, self.load_order[index])
+                self.load_order[index], self.load_order[index - 1] = (
+                    self.load_order[index - 1],
+                    self.load_order[index],
+                )
+                self.load_order_listbox.selection_set(index - 1)
 
     def move_down(self):
-        selected_item = self.load_order_tree.selection()
-        if selected_item:
-            index = self.load_order.index(selected_item[0])
+        selected_index = self.load_order_listbox.curselection()
+        if selected_index:
+            index = selected_index[0]
             if index < len(self.load_order) - 1:
-                self.load_order.remove(selected_item[0])
-                self.load_order.insert(index + 1, selected_item[0])
-                self.update_load_order_tree()
+                self.load_order_listbox.delete(index)
+                self.load_order_listbox.insert(index + 1, self.load_order[index])
+                self.load_order[index], self.load_order[index + 1] = (
+                    self.load_order[index + 1],
+                    self.load_order[index],
+                )
+                self.load_order_listbox.selection_set(index + 1)
 
     def select_directory(self):
         directory = filedialog.askdirectory(title="Select Output Directory")
         if directory:
+            self.directory_path.set(directory)
             self.selected_directory = directory
-            self.directory_label["text"] = directory
 
     def join_files(self):
-        if not self.selected_files:
-            messagebox.showerror("Error", "No files selected.")
-            return
-
-        if not self.load_order:
-            messagebox.showerror("Error", "No load order selected.")
-            return
-
+        # Check if output directory is selected
         if not self.selected_directory:
-            messagebox.showerror("Error", "No output directory selected.")
+            messagebox.showerror("Error", "Please select an output directory.")
             return
 
-        # Join files into a single executable using the selected load order
-        output_file = filedialog.asksaveasfilename(
-            title="Save As", defaultextension=".exe",
-            filetypes=(("Executable Files", "*.exe"), ("All Files", "*.*")))
-        if not output_file:
+        # Check if both files are selected
+        if not self.file1_path.get() or not self.file2_path.get():
+            messagebox.showerror("Error", "Please select both File 1 and File 2.")
             return
 
-        # Build the join command based on the selected tool
-        tool = "IExpress"  # Default to IExpress if no tool is selected
-        if self.use_makeself.get():
-            tool = "makeself"
+        # Add selected files to load order
+        self.load_order = [self.file1_path.get(), self.file2_path.get()]
 
-        command = ""
-        if tool == "IExpress":
-            command = self.build_iexpress_command(output_file)
-        elif tool == "makeself":
-            command = self.build_makeself_command(output_file)
+        # Perform the binding using makeself command
+        command = self.create_makeself_command()
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr = process.communicate()
+        if process.returncode == 0:
+            messagebox.showinfo("Success", "Files joined successfully.")
+        else:
+            messagebox.showerror("Error", f"Error joining files:\n{stderr.decode()}")
 
-        if command:
-            process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            stdout, stderr = process.communicate()
+    def create_makeself_command(self):
+        output_file = os.path.join(self.selected_directory, "joined_files.run")
 
-            if process.returncode != 0:
-                messagebox.showerror("Error", f"Joining process failed:\n{stderr.decode('utf-8')}")
-            else:
-                messagebox.showinfo("Success", f"Joining process completed.\nOutput file: {output_file}")
-
-    def build_iexpress_command(self, output_file):
-        # Create the IExpress configuration file
-        config_file_content = f"""[Version]
-Class=IEXPRESS
-SEDVersion=3
-[Options]
-PackagePurpose=ExtractOnly
-ShowInstallProgramWindow=0
-HideExtractAnimation=1
-UseLongFileName=1
-InsideCompressed=0
-CAB_FixedSize=0
-CAB_ResvCodeSigning=0
-RebootMode=N
-InstallPrompt=%InstallPrompt%
-DisplayLicense=%DisplayLicense%
-FinishMessage=%FinishMessage%
-TargetName={os.path.basename(output_file)}
-[Tasks]
-[Files]"""
-
-        # Add the selected files to the configuration file
-        for file_path in self.load_order:
-            config_file_content += f"\n\"{file_path}\""
-
-        # Write the configuration file to disk
-        config_file_path = os.path.join(self.selected_directory, "config.txt")
-        with open(config_file_path, "w") as config_file:
-            config_file.write(config_file_content)
-
-        # Create a temporary batch file to run the IExpress command
-        batch_file_content = f"""@echo off
-IExpress /N /Q {config_file_path}
-del /F {config_file_path}
-"""
-        batch_file_path = os.path.join(self.selected_directory, "join.bat")
-        with open(batch_file_path, "w") as batch_file:
-            batch_file.write(batch_file_content)
-
-        return [batch_file_path]
-
-    def build_makeself_command(self, output_file):
-        # Build the makeself command
+        # Generate the makeself command
         command = [
             "makeself.sh", "--gzip", "--nocomp", "--notemp", "--nocrc",
             self.selected_directory, output_file, "Join Files", *self.load_order
         ]
 
         return command
+
